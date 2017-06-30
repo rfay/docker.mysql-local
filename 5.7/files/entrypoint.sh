@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# Change  to UID/GID of the docker user
+if [ -n "$DDEV_UID" ] ; then
+	echo "changing mysql user to uid: $DDEV_UID"
+	usermod -u $DDEV_UID mysql
+fi
+if [ -n "$DDEV_GID" ] ; then
+	echo "changing mysql group to uid: $DDEV_GID"
+	groupmod -g $DDEV_GID mysql
+fi
+
 # set configuration values based on environment
 if grep -q max_allowed_packet /etc/my.cnf
 then
@@ -116,6 +126,8 @@ if [ "$1" = 'mysqld' ]; then
 	# This .my.cnf configuration prevents the initialization process from
 	# succeeding, so it is moved into place after initialization is complete.
 	cp /root/mysqlclient.cnf /root/.my.cnf
+
+
 fi
 
 
