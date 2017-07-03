@@ -10,6 +10,8 @@ if [ -n "$DDEV_GID" ] ; then
 	echo "changing mysql group to uid: $DDEV_GID"
 	groupmod -g $DDEV_GID mysql
 fi
+chown -R mysql:mysql /var/lib/mysql
+chown mysql:mysql /var/log/mysqld.log
 
 # set configuration values based on environment
 if grep -q max_allowed_packet /etc/my.cnf
@@ -30,15 +32,14 @@ if [ "$1" = 'mysqld' ]; then
 
 	if [ ! -d "$DATADIR/mysql" ]; then
 		if [ -z "$MYSQL_ROOT_PASSWORD" -a -z "$MYSQL_ALLOW_EMPTY_PASSWORD" -a -z "$MYSQL_RANDOM_ROOT_PASSWORD" ]; then
-			echo >&2 'error: database is uninitialized and password option is not specified '
-			echo >&2 '  You need to specify one of MYSQL_ROOT_PASSWORD, MYSQL_ALLOW_EMPTY_PASSWORD and MYSQL_RANDOM_ROOT_PASSWORD'
+			echo 'error: database is uninitialized and password option is not specified '
+			echo '  You need to specify one of MYSQL_ROOT_PASSWORD, MYSQL_ALLOW_EMPTY_PASSWORD and MYSQL_RANDOM_ROOT_PASSWORD'
 			exit 1
 		fi
 		# If the password variable is a filename we use the contents of the file
 		if [ -f "$MYSQL_ROOT_PASSWORD" ]; then
 			MYSQL_ROOT_PASSWORD="$(cat $MYSQL_ROOT_PASSWORD)"
 		fi
-		chown -R mysql:mysql "$DATADIR"
 
 		echo 'Initializing database'
 		$"$@" --initialize-insecure=on
@@ -57,7 +58,7 @@ if [ "$1" = 'mysqld' ]; then
 			sleep 1
 		done
 		if [ "$i" = 0 ]; then
-			echo >&2 'MySQL init process failed.'
+			echo 'MySQL init process failed.'
 			exit 1
 		fi
 
@@ -116,17 +117,14 @@ if [ "$1" = 'mysqld' ]; then
 			exit 1
 		fi
 
-		echo
-		echo 'MySQL init process done. Ready for start up.'
-		echo
 	fi
-
-	chown -R mysql:mysql "$DATADIR"
+	echo
+	echo 'MySQL init process done. Ready for start up.'
+	echo
 
 	# This .my.cnf configuration prevents the initialization process from
 	# succeeding, so it is moved into place after initialization is complete.
 	cp /root/mysqlclient.cnf /root/.my.cnf
-
 
 fi
 
