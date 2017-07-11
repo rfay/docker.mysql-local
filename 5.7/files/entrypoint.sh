@@ -102,8 +102,4 @@ echo
 # succeeding, so it is moved into place after initialization is complete.
 cp /root/mysqlclient.cnf /root/.my.cnf
 
-if ! mysqld --max-allowed-packet=${MYSQL_MAX_ALLOWED_PACKET:-16m} ; then
- 	echo "Launch of $@ failed with result $?, mysqld.log follows"
- 	cat /var/log/mysqld.log
- 	exit 5
-fi
+exec mysqld --max-allowed-packet=${MYSQL_MAX_ALLOWED_PACKET:-16m}
