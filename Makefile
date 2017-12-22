@@ -8,6 +8,8 @@
 # Docker repo for a push
 DOCKER_REPO ?= drud/mariadb-local
 
+MARIADB_VERSION = 10.2
+
 # Upstream repo used in the Dockerfile
 # UPSTREAM_REPO ?= oraclelinux:7.3
 
@@ -40,4 +42,4 @@ include ../build-tools/makefile_components/base_push.mak
 include ../build-tools/makefile_components/base_test_python.mak
 
 test: container
-	../test/testserver.sh $(DOCKER_REPO):$(VERSION) $(MYSQL_VERSION) && ../test/cleanup.sh $(DOCKER_REPO):$(VERSION)
+	./test/testserver.sh $(DOCKER_REPO):$(VERSION) $(MARIADB_VERSION)

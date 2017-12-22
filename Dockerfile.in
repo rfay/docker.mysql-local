@@ -20,4 +20,4 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 3306 33060
 CMD ["mysqld"]
-HEALTHCHECK --interval=5s --retries=5 CMD ["/healthcheck.sh"]
+HEALTHCHECK --interval=1s --retries=60 CMD ["/healthcheck.sh"]

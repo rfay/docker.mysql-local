@@ -69,14 +69,17 @@ echo 'MySQL init process done. Ready for start up.'
 echo
 
 # Change  to UID/GID of the docker user
-if [ -n "$DDEV_UID" ] ; then
-	echo "changing mysql user to uid: $DDEV_UID"
-	usermod -u $DDEV_UID mysql
+# We use the default assignment to zero to prevent triggering
+# unbound variable exit
+if [ "${DDEV_UID:=0}" -gt "0" ] ; then
+        echo "changing mysql user to uid: $DDEV_UID"
+        usermod -u $DDEV_UID mysql
 fi
-if [ -n "$DDEV_GID" ] ; then
-	echo "changing mysql group to uid: $DDEV_GID"
-	groupmod -g $DDEV_GID mysql
+if [ "${DDEV_GID:=0}" -gt 0 ] ; then
+        echo "changing mysql group to gid: $DDEV_GID"
+        groupmod -g $DDEV_GID mysql
 fi
+
 chown -R mysql:mysql /var/lib/mysql
 chown mysql:mysql /var/log/mysqld.log
 

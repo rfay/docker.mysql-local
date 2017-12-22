@@ -1,6 +1,6 @@
 #!/bin/bash
-
-#set -o errexit
+set -x
+set -euo pipefail
 
 IMAGE="$1"  # Full image name with tag
 MYSQL_VERSION="$2"
