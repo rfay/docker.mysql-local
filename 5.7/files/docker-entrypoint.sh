@@ -1,9 +1,9 @@
 #!/bin/bash
 set -x
-set -o errexit
+set -euo pipefail
 
 # If no mysql database exists in /var/lib/mysql, run initialization
-if [ ! -f "/root/.my.cnf" ]; then
+if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mkdir -p /var/lib/mysql
 	chown -R mysql:mysql /var/lib/mysql
 
