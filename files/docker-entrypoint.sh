@@ -1,5 +1,6 @@
 #!/bin/bash
 # set -x
+set -euo pipefail
 
 # If no mysql database exists in /var/lib/mysql, run initialization
 if [ ! -d "/var/lib/mysql/mysql" ]; then
@@ -13,7 +14,7 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mysqld --skip-networking &
 	pid="$!"
 
-	mysql=( mysql --protocol=socket -uroot -hlocalhost --socket="/var/run/mysqld/mysqld.sock" )
+	mysql=( mysql --protocol=socket -uroot --socket="/var/tmp/mysql.sock" )
 
 	for i in {30..0}; do
 		if mysql -e "SELECT 1" &> /dev/null; then

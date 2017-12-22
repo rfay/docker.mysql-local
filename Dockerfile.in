@@ -1,12 +1,23 @@
-FROM mariadb:10.2
+FROM centos
+
+ARG MYSQL_PACKAGE_VERSION=5.7.13-1
+ENV MYSQL_PACKAGE_VERSION=$MYSQL_PACKAGE_VERSION
+ENV PACKAGE_URL https://repo.mysql.com/yum/mysql-5.7-community/docker/x86_64/mysql-community-server-minimal-$MYSQL_PACKAGE_VERSION.el7.x86_64.rpm
 ENV MYSQL_DATABASE db
 ENV MYSQL_USER db
 ENV MYSQL_PASSWORD db
 ENV MYSQL_ROOT_PASSWORD root
 ENV MYSQL_MAX_ALLOWED_PACKET 16m
+
+RUN mkdir /docker-entrypoint-initdb.data
 ADD files /
-EXPOSE 3306 33060
-HEALTHCHECK --interval=5s --retries=5 CMD ["/healthcheck.sh"]
+
+# Install mariadb
+RUN yum install MariaDB-server MariaDB-client -y
+
+RUN chmod ugo+x /import.sh /healthcheck.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
-# Note that this line shouldn't be removed, as it's removing the upstream CMD.
-CMD []
+
+EXPOSE 3306 33060
+CMD ["mysqld"]
+HEALTHCHECK --interval=5s --retries=5 CMD ["/healthcheck.sh"]
