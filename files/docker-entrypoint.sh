@@ -1,72 +1,52 @@
 #!/bin/bash
-# set -x
-set -euo pipefail
+set -x
+set -eu
+set -o pipefail
 
-# If no mysql database exists in /var/lib/mysql, run initialization
-if [ ! -d "/var/lib/mysql/mysql" ]; then
-	mkdir -p /var/lib/mysql
-	chown -R mysql:mysql /var/lib/mysql
 
-	echo 'Initializing database'
-	mysql_install_db --datadir="/var/lib/mysql" --rpm
-	echo 'Database initialized'
+mysqld --skip-networking &
+pid="$!"
 
-	mysqld --skip-networking &
-	pid="$!"
-
-	mysql=( mysql --protocol=socket -uroot --socket="/var/tmp/mysql.sock" )
-
-	for i in {30..0}; do
-		if mysql -e "SELECT 1" &> /dev/null; then
-			break
-		fi
-		echo 'MySQL init process in progress...'
-		sleep 1
-	done
-	if [ "$i" = 0 ]; then
-		echo 'MySQL init process failed.'
-		exit 1
+for i in {60..0}; do
+	if mysqladmin ping -uroot -p$MYSQL_ROOT_PASSWORD --socket=/var/tmp/mysql.sock 2>/dev/null; then
+		break
 	fi
-
-	mysql_tzinfo_to_sql /usr/share/zoneinfo | "${mysql[@]}" mysql
-
-
-	"${mysql[@]}" <<-EOSQL
-	-- What's done in this file shouldn't be replicated
-	--  or products like mysql-fabric won't work
-	SET @@SESSION.SQL_LOG_BIN=0;
-	DELETE FROM mysql.user WHERE user NOT IN ('mysql.sys', 'mysqlxsys');
-	CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-	GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;
-	DROP DATABASE IF EXISTS test ;
-	FLUSH PRIVILEGES ;
-	EOSQL
-
-	mysql+=(--password="${MYSQL_ROOT_PASSWORD}")
-
-	echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;" | "${mysql[@]}"
-	mysql+=(--database="$MYSQL_DATABASE" )
-
-	echo "Creating mysql user $MYSQL_USER"
-	echo "CREATE USER '"$MYSQL_USER"'@'%' IDENTIFIED BY '"$MYSQL_PASSWORD"' ;" | "${mysql[@]}"
-	echo "GRANT ALL ON \`"$MYSQL_DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;" | "${mysql[@]}"
-	echo 'FLUSH PRIVILEGES ;' | "${mysql[@]}"
-
-	if ! kill -s TERM "$pid" || ! wait "$pid"; then
-		echo >&2 'MySQL init process failed.'
-		exit 1
+	# Test to make sure we got it started in the first place. kill -s 0 just tests to see if process exists.
+	if ! kill -s 0 $pid 2>/dev/null; then
+		echo "mysqld local startup failed"
+		exit 3
 	fi
+	echo "MySQL local startup process in progress... Try# $i"
+	sleep 1
+done
+if [ "$i" -eq 0 ]; then
+	echo 'MySQL local startup process failed.'
+	exit 1
+fi
 
-	echo "Generating .my.cnf"
-	echo "[client]" > /root/.my.cnf
-	echo "user=${MYSQL_USER}" >> /root/.my.cnf
-	echo "password=${MYSQL_PASSWORD}" >> /root/.my.cnf
-	echo "database=${MYSQL_DATABASE}" >> /root/.my.cnf
+# If no mysql database exists, run initialization
+# Create the database and users we need.
+if ! mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "use $MYSQL_DATABASE;" 2>/dev/null; then
+	mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;"
+
+	mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -uroot -p$MYSQL_ROOT_PASSWORD mysql
+
+	mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE USER '"$MYSQL_USER"'@'%' IDENTIFIED BY '"$MYSQL_PASSWORD"' ;"
+	mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL ON \`"$MYSQL_DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;"
+	mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e 'FLUSH PRIVILEGES ;'
+
+
+fi
+
+if ! kill -s TERM "$pid" || ! wait "$pid"; then
+	echo >&2 'MySQL local startup process failed.'
+	exit 1
 fi
 
 echo
-echo 'MySQL init process done. Ready for start up.'
+echo 'MySQL local startup process done. Ready for start up.'
 echo
+
 
 # Change  to UID/GID of the docker user
 # We use the default assignment to zero to prevent triggering

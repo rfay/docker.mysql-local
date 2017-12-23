@@ -1,8 +1,5 @@
-FROM centos
+FROM bitnami/minideb
 
-ARG MYSQL_PACKAGE_VERSION=5.7.13-1
-ENV MYSQL_PACKAGE_VERSION=$MYSQL_PACKAGE_VERSION
-ENV PACKAGE_URL https://repo.mysql.com/yum/mysql-5.7-community/docker/x86_64/mysql-community-server-minimal-$MYSQL_PACKAGE_VERSION.el7.x86_64.rpm
 ENV MYSQL_DATABASE db
 ENV MYSQL_USER db
 ENV MYSQL_PASSWORD db
@@ -12,8 +9,17 @@ ENV MYSQL_MAX_ALLOWED_PACKET 16m
 RUN mkdir /docker-entrypoint-initdb.data
 ADD files /
 
-# Install mariadb
-RUN yum install MariaDB-server MariaDB-client -y
+# Install mariadb non-interactive
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN echo "mariadb-server mysql-server/root_password password $MYSQL_ROOT_PASSWORD" | debconf-set-selections && \
+echo "mariadb-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
+
+RUN apt-get -qq update && \
+apt-get -qq install software-properties-common dirmngr vim less wget sudo telnet && \
+apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 && \
+add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.osuosl.org/pub/mariadb/repo/10.1/debian stretch main' && \
+apt-get -qq update && apt-get -qq install mariadb-server
+
 
 RUN chmod ugo+x /import.sh /healthcheck.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
