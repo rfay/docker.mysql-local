@@ -15,10 +15,21 @@ RUN echo "mariadb-server mysql-server/root_password password $MYSQL_ROOT_PASSWOR
 echo "mariadb-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
 
 RUN apt-get -qq update && \
-apt-get -qq install software-properties-common dirmngr vim less wget sudo telnet && \
+apt-get -qq install --no-install-recommends --no-install-suggests \
+	software-properties-common \
+	dirmngr \
+	gnupg \
+	vim \
+	less \
+	wget \
+	sudo \
+	telnet && \
 apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 && \
 add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.osuosl.org/pub/mariadb/repo/10.1/debian stretch main' && \
-apt-get -qq update && apt-get -qq install mariadb-server
+apt-get -qq update && apt-get -qq install --no-install-recommends --no-install-suggests mariadb-server mariadb-client && \
+apt-get -qq autoremove -y && \
+apt-get -qq clean -y && \
+rm -rf /var/lib/apt/lists/*
 
 # Start with a clean slate on the mysql installation, as it
 # may be mounted on a bland dir anyway
