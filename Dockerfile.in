@@ -20,6 +20,9 @@ apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 && \
 add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.osuosl.org/pub/mariadb/repo/10.1/debian stretch main' && \
 apt-get -qq update && apt-get -qq install mariadb-server
 
+# Start with a clean slate on the mysql installation, as it
+# may be mounted on a bland dir anyway
+RUN rm -rf /var/lib/mysql/*
 
 RUN chmod ugo+x /import.sh /healthcheck.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
