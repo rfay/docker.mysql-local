@@ -8,7 +8,7 @@
 # Docker repo for a push
 DOCKER_REPO ?= drud/mariadb-local
 
-MARIADB_VERSION = 10.2
+MARIADB_VERSION = 10\.1
 
 # Upstream repo used in the Dockerfile
 # UPSTREAM_REPO ?= oraclelinux:7.3

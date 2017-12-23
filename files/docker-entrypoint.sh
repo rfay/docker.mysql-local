@@ -43,10 +43,14 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mysql -uroot  --password='' -e "GRANT ALL ON \`"$MYSQL_DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;"
 	mysql -uroot  --password='' -e 'FLUSH PRIVILEGES ;'
 
+	mysql -uroot --password='' -e "CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';"
+	mysql -uroot --password='' -e "GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;"
+	mysql -uroot --password='' -e "FLUSH PRIVILEGES;"
+
 	mysqladmin --socket=$SOCKET  -uroot password "$MYSQL_ROOT_PASSWORD"
 
 	if ! kill -s TERM "$pid" || ! wait "$pid"; then
-		echo >&2 'Mariadb initialization startup process failed.'
+		echo >&2 'Mariadb initialization process failed.'
 		exit 1
 	fi
 
