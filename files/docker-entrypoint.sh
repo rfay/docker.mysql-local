@@ -54,11 +54,11 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 		exit 1
 	fi
 
-	echo 'Mariadb initialized'
+	echo 'Database initialized'
 fi
 
 echo
-echo 'MySQL startup process done. Ready for server start up.'
+echo 'MySQL init process done. Ready for start up.'
 echo
 
 
