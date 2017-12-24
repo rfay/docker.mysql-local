@@ -5,6 +5,20 @@ set -o pipefail
 
 SOCKET=/var/run/mysqld/mysqld.sock
 
+# Change  to UID/GID of the docker user
+# We use the default assignment to zero to prevent triggering
+# unbound variable exit. Since we chown all files to mysql, this
+# must be done at the beginning of the script here.
+if [ "${DDEV_UID:=0}" -gt "0" ] ; then
+        echo "changing mysql user to uid: $DDEV_UID"
+        usermod -u $DDEV_UID mysql
+fi
+if [ "${DDEV_GID:=0}" -gt 0 ] ; then
+        echo "changing mysql group to gid: $DDEV_GID"
+        groupmod -g $DDEV_GID mysql
+fi
+
+
 # If mariadb has not been initialized, initialize it.
 # Then create our 'db', database, 'db' user, and permissions.
 if [ ! -d "/var/lib/mysql/mysql" ]; then
@@ -60,19 +74,6 @@ fi
 echo
 echo 'MySQL init process done. Ready for start up.'
 echo
-
-
-# Change  to UID/GID of the docker user
-# We use the default assignment to zero to prevent triggering
-# unbound variable exit
-if [ "${DDEV_UID:=0}" -gt "0" ] ; then
-        echo "changing mysql user to uid: $DDEV_UID"
-        usermod -u $DDEV_UID mysql
-fi
-if [ "${DDEV_GID:=0}" -gt 0 ] ; then
-        echo "changing mysql group to gid: $DDEV_GID"
-        groupmod -g $DDEV_GID mysql
-fi
 
 chown -R mysql:mysql /var/lib/mysql
 chown mysql:mysql /var/log/mysqld.log

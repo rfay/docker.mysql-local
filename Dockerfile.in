@@ -1,4 +1,4 @@
-FROM bitnami/minideb
+FROM bitnami/minideb:stretch
 
 ENV MYSQL_DATABASE db
 ENV MYSQL_USER db
