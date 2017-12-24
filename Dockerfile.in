@@ -27,7 +27,7 @@ apt-get -qq install --no-install-recommends --no-install-suggests \
 	telnet \
 	procps && \
 apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 && \
-add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.osuosl.org/pub/mariadb/repo/10.1/debian stretch main' && \
+add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.osuosl.org/pub/mariadb/repo/10.2/debian stretch main' && \
 apt-get -qq update && apt-get -qq install --no-install-recommends --no-install-suggests mariadb-server mariadb-client && \
 apt-get -qq autoremove -y && \
 apt-get -qq clean -y && \
