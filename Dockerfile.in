@@ -38,8 +38,9 @@ rm -rf /var/lib/apt/lists/*
 RUN rm -rf /var/lib/mysql/*
 
 RUN chmod ugo+x /import.sh /healthcheck.sh
-ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 3306
-CMD ["mysqld"]
 HEALTHCHECK --interval=1s --retries=60 CMD ["/healthcheck.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
+# Note that this line shouldn't be removed, as it's removing the upstream CMD.
+CMD []
