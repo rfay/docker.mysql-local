@@ -47,7 +47,7 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mysql -uroot --password='' -e "GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;"
 	mysql -uroot --password='' -e "FLUSH PRIVILEGES;"
 
-	mysqladmin --socket=$SOCKET  -uroot password "$MYSQL_ROOT_PASSWORD"
+	# mysqladmin --socket=$SOCKET  -uroot password "$MYSQL_ROOT_PASSWORD"
 
 	if ! kill -s TERM "$pid" || ! wait "$pid"; then
 		echo >&2 'Mariadb initialization process failed.'

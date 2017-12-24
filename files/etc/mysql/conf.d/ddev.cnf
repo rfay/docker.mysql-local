@@ -4,6 +4,7 @@
 port                           = 3306
 
 [mysqld]
+bind-address = 0.0.0.0
 #
 # Remove leading # and set to the amount of RAM for the most important data
 # cache in MySQL. Start at 70% of total RAM for dedicated server, else 10%.
