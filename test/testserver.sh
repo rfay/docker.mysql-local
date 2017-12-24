@@ -7,6 +7,13 @@ MYSQL_VERSION="$2"
 CONTAINER_NAME="testserver"
 HOSTPORT=33000
 
+DDEV_UID=0
+DDEV_GID=0
+if [ $(uname -s) == "linux" ]; then
+	DDEV_UID=$(id -u)
+	DDEV_GID=$(id -g)
+fi
+
 function cleanup {
 	echo "Removing ${CONTAINER_NAME}"
 	docker rm -f $CONTAINER_NAME 2>/dev/null || true
@@ -32,7 +39,7 @@ function containercheck {
 cleanup
 
 echo "Starting image with MySQL image $IMAGE"
-if ! docker run --name=$CONTAINER_NAME -p $HOSTPORT:3306 -d $IMAGE; then
+if ! docker run -e DDEV_UID=$DDEV_UID -e DDEV_GID=$DDEV_UID --name=$CONTAINER_NAME -p $HOSTPORT:3306 -d $IMAGE; then
 	echo "MySQL server start failed with error code $?"
 	exit 2
 fi
