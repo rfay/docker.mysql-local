@@ -9,7 +9,8 @@ ENV MYSQL_MAX_ALLOWED_PACKET 16m
 RUN mkdir /docker-entrypoint-initdb.data
 ADD files /
 
-# Install mariadb non-interactive
+# Install mariadb non-interactive. The root password setup
+# gets thrown away when we delete /var/lib/mysql below.
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN echo "mariadb-server mysql-server/root_password password $MYSQL_ROOT_PASSWORD" | debconf-set-selections && \
 echo "mariadb-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
@@ -23,7 +24,8 @@ apt-get -qq install --no-install-recommends --no-install-suggests \
 	less \
 	wget \
 	sudo \
-	telnet && \
+	telnet \
+	procps && \
 apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 && \
 add-apt-repository 'deb [arch=amd64,i386,ppc64el] http://ftp.osuosl.org/pub/mariadb/repo/10.1/debian stretch main' && \
 apt-get -qq update && apt-get -qq install --no-install-recommends --no-install-suggests mariadb-server mariadb-client && \

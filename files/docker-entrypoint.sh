@@ -3,7 +3,7 @@
 set -eu
 set -o pipefail
 
-SOCKET=/var/tmp/mysql.sock
+SOCKET=/var/run/mysqld/mysqld.sock
 
 # If mariadb has not been initialized, initialize it.
 # Then create our 'db', database, 'db' user, and permissions.
@@ -12,14 +12,14 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then
 	chown -R mysql:mysql /var/lib/mysql
 
 	echo 'Initializing mysql'
-	mysql_install_db --datadir="/var/lib/mysql"
-	mysqld --skip-networking >/tmp/mysqld.out 2>&1 &
+	mysql_install_db --datadir="/var/lib/mysql" >/tmp/mysql_install_db.out 2>&1
+	mysqld --skip-networking >/tmp/mysqld-skip-networking.out 2>&1 &
 	pid="$!"
 
 	# Wait for the server to respond to mysqladmin ping, or fail if it never does,
 	# or if the process dies.
 	for i in {60..0}; do
-		if mysqladmin ping -uroot --socket=$SOCKET 2>/dev/null; then
+		if mysqladmin ping -uroot --socket=$SOCKET; then
 			break
 		fi
 		# Test to make sure we got it started in the first place. kill -s 0 just tests to see if process exists.

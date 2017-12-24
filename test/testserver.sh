@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 set -euo pipefail
 
 IMAGE="$1"  # Full image name with tag
@@ -47,9 +47,10 @@ if ! containercheck; then
 fi
 echo "Connected to mysql server."
 for i in {60..0}; do
-	OUTPUT=$(mysql --user=root --password=root  --skip-column-names --host=127.0.0.1 --port=$HOSTPORT -e "SHOW VARIABLES like \"version\";" 2>/dev/null)
+	OUTPUT=$(mysql --user=root --password=root  --skip-column-names --host=127.0.0.1 --port=$HOSTPORT -e "SHOW VARIABLES like \"version\";")
 	RES=$?
 	if [ $RES -eq 0 ]; then
+		echo "Successful mysql show variables, output=$OUTPUT"
 		break
 	fi
 	sleep 1
