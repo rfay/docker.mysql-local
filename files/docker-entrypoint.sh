@@ -23,7 +23,7 @@ fi
 # Then create our 'db', database, 'db' user, and permissions.
 if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mkdir -p /var/lib/mysql
-	chown -R mysql:mysql /var/lib/mysql
+	chown -R mysql:mysql /var/lib/mysql /var/log/mysql
 
 	echo 'Initializing mysql'
 	mysql_install_db --datadir="/var/lib/mysql" >/tmp/mysql_install_db.out 2>&1
