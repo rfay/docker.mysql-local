@@ -22,8 +22,8 @@ fi
 # If mariadb has not been initialized, initialize it.
 # Then create our 'db', database, 'db' user, and permissions.
 if [ ! -d "/var/lib/mysql/mysql" ]; then
-	mkdir -p /var/lib/mysql
-	chown -R mysql:mysql /var/lib/mysql /var/log/mysql
+	mkdir -p /var/lib/mysql /var/log/mysql
+	chown -R mysql:mysql /var/*/mysql
 
 	echo 'Initializing mysql'
 	mysql_install_db --datadir="/var/lib/mysql" >/tmp/mysql_install_db.out 2>&1
@@ -75,8 +75,7 @@ echo
 echo 'MySQL init process done. Ready for start up.'
 echo
 
-chown -R mysql:mysql /var/lib/mysql
-chown mysql:mysql /var/log/mysqld.log
+chown -R mysql:mysql /var/*/mysql
 
 echo "Starting mysqld."
 exec mysqld --max-allowed-packet=${MYSQL_MAX_ALLOWED_PACKET:-16m}

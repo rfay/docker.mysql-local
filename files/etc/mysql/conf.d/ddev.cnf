@@ -67,7 +67,5 @@ innodb_file_format=barracuda
 innodb_file_per_table=true
 
 # LOGGING #
-log-error                      = /var/log/mysqld.log
 log-queries-not-using-indexes  = 1
 slow-query-log                 = 1
-slow-query-log-file            = /var/log/mysql-slow.log
