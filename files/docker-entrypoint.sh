@@ -18,13 +18,11 @@ if [ "${DDEV_GID:=0}" -gt 0 ] ; then
         groupmod -o -g $DDEV_GID mysql
 fi
 
-
 # If mariadb has not been initialized, initialize it.
 # Then create our 'db', database, 'db' user, and permissions.
 if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mkdir -p /var/lib/mysql
 	chown -R mysql:mysql /var/lib/mysql /var/run/mysqld /var/log/mysql*
-	chmod g-s /var/*/mysql
 
 	echo 'Initializing mysql'
 	mysql_install_db
@@ -77,7 +75,7 @@ echo
 echo 'MySQL init process done. Ready for start up.'
 echo
 
-chown -R mysql:mysql /var/*/mysql
+chown -R mysql:mysql /var/lib/mysql /var/run/mysqld /var/log/mysql*
 
 echo "Starting mysqld."
 exec mysqld --max-allowed-packet=${MYSQL_MAX_ALLOWED_PACKET:-16m}
