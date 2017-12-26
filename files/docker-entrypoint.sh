@@ -11,11 +11,11 @@ SOCKET=/var/run/mysqld/mysqld.sock
 # must be done at the beginning of the script here.
 if [ "${DDEV_UID:=0}" -gt "0" ] ; then
         echo "changing mysql user to uid: $DDEV_UID"
-        usermod -u $DDEV_UID mysql
+        usermod -o -u $DDEV_UID mysql
 fi
 if [ "${DDEV_GID:=0}" -gt 0 ] ; then
         echo "changing mysql group to gid: $DDEV_GID"
-        groupmod -g $DDEV_GID mysql
+        groupmod -o -g $DDEV_GID mysql
 fi
 
 
@@ -23,10 +23,12 @@ fi
 # Then create our 'db', database, 'db' user, and permissions.
 if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mkdir -p /var/lib/mysql /var/log/mysql
-	chown -R mysql:mysql /var/*/mysql
+	chown -R mysql:mysql /var/*/mysql /var/run/mysqld
+	chmod ug+wx /var/*/mysql
 
 	echo 'Initializing mysql'
-	mysql_install_db --datadir="/var/lib/mysql" >/tmp/mysql_install_db.out 2>&1
+	mysql_install_db
+	echo 'Starting mysqld --skip-networking'
 	mysqld --skip-networking >/tmp/mysqld-skip-networking.out 2>&1 &
 	pid="$!"
 
