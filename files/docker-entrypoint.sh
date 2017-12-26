@@ -22,9 +22,9 @@ fi
 # If mariadb has not been initialized, initialize it.
 # Then create our 'db', database, 'db' user, and permissions.
 if [ ! -d "/var/lib/mysql/mysql" ]; then
-	mkdir -p /var/lib/mysql /var/log/mysql
-	chown -R mysql:mysql /var/*/mysql /var/run/mysqld
-	chmod ug+wx /var/*/mysql
+	mkdir -p /var/lib/mysql
+	chown -R mysql:mysql /var/lib/mysql /var/run/mysqld /var/log/mysql*
+	chmod g-s /var/*/mysql
 
 	echo 'Initializing mysql'
 	mysql_install_db
