@@ -1,84 +1,81 @@
 #!/bin/bash
-set -x
-set -euo pipefail
+# set -x
+set -eu
+set -o pipefail
 
-# If no mysql database exists in /var/lib/mysql, run initialization
+SOCKET=/var/tmp/mysql.sock
+
+# Change  to UID/GID of the docker user
+# We use the default assignment to zero to prevent triggering
+# unbound variable exit. Since we chown all files to mysql, this
+# must be done at the beginning of the script here.
+if [ "${DDEV_UID:=0}" -gt "0" ] ; then
+        echo "changing mysql user to uid: $DDEV_UID"
+        usermod -o -u $DDEV_UID mysql
+fi
+if [ "${DDEV_GID:=0}" -gt 0 ] ; then
+        echo "changing mysql group to gid: $DDEV_GID"
+        groupmod -o -g $DDEV_GID mysql
+fi
+
+# If mariadb has not been initialized, initialize it.
+# Then create our 'db', database, 'db' user, and permissions.
 if [ ! -d "/var/lib/mysql/mysql" ]; then
 	mkdir -p /var/lib/mysql
-	chown -R mysql:mysql /var/lib/mysql
+	chown -R mysql:mysql /var/lib/mysql /var/log/mysql*
 
-	echo 'Initializing database'
-	mysql_install_db --datadir="/var/lib/mysql" --rpm
-	echo 'Database initialized'
-
+	echo 'Initializing mysql'
+	mysql_install_db
+	echo 'Starting mysqld --skip-networking'
 	mysqld --skip-networking &
 	pid="$!"
 
-	mysql=( mysql --protocol=socket -uroot --socket="/var/tmp/mysql.sock" )
-
-	for i in {30..0}; do
-		if mysql -e "SELECT 1" &> /dev/null; then
+	# Wait for the server to respond to mysqladmin ping, or fail if it never does,
+	# or if the process dies.
+	for i in {60..0}; do
+		if mysqladmin ping -uroot --socket=$SOCKET; then
 			break
 		fi
-		echo 'MySQL init process in progress...'
+		# Test to make sure we got it started in the first place. kill -s 0 just tests to see if process exists.
+		if ! kill -s 0 $pid 2>/dev/null; then
+			echo "MariaDB initialization startup failed"
+			exit 3
+		fi
+		echo "MariaDB initialization startup process in progress... Try# $i"
 		sleep 1
 	done
-	if [ "$i" = 0 ]; then
-		echo 'MySQL init process failed.'
+	if [ "$i" -eq 0 ]; then
+		echo 'MariaDB initialization startup process timed out.'
 		exit 1
 	fi
 
-	mysql_tzinfo_to_sql /usr/share/zoneinfo | "${mysql[@]}" mysql
+	mysql --database=mysql -uroot --password='' -e "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;"
 
+	mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -uroot --password='' mysql
 
-	"${mysql[@]}" <<-EOSQL
-	-- What's done in this file shouldn't be replicated
-	--  or products like mysql-fabric won't work
-	SET @@SESSION.SQL_LOG_BIN=0;
-	DELETE FROM mysql.user WHERE user NOT IN ('mysql.sys', 'mysqlxsys');
-	CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-	GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;
-	DROP DATABASE IF EXISTS test ;
-	FLUSH PRIVILEGES ;
-	EOSQL
+	mysql -uroot  --password='' -e "CREATE USER '"$MYSQL_USER"'@'%' IDENTIFIED BY '"$MYSQL_PASSWORD"' ;"
+	mysql -uroot  --password='' -e "GRANT ALL ON \`"$MYSQL_DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;"
+	mysql -uroot  --password='' -e 'FLUSH PRIVILEGES ;'
 
-	mysql+=(--password="${MYSQL_ROOT_PASSWORD}")
+	mysql -uroot --password='' -e "CREATE USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';"
+	mysql -uroot --password='' -e "GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION ;"
+	mysql -uroot --password='' -e "FLUSH PRIVILEGES;"
 
-	echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;" | "${mysql[@]}"
-	mysql+=(--database="$MYSQL_DATABASE" )
-
-	echo "Creating mysql user $MYSQL_USER"
-	echo "CREATE USER '"$MYSQL_USER"'@'%' IDENTIFIED BY '"$MYSQL_PASSWORD"' ;" | "${mysql[@]}"
-	echo "GRANT ALL ON \`"$MYSQL_DATABASE"\`.* TO '"$MYSQL_USER"'@'%' ;" | "${mysql[@]}"
-	echo 'FLUSH PRIVILEGES ;' | "${mysql[@]}"
+	mysqladmin --socket=$SOCKET  -uroot password "$MYSQL_ROOT_PASSWORD"
 
 	if ! kill -s TERM "$pid" || ! wait "$pid"; then
-		echo >&2 'MySQL init process failed.'
+		echo >&2 'Mariadb initialization process failed.'
 		exit 1
 	fi
 
-	echo "Generating .my.cnf"
-	echo "[client]" > /root/.my.cnf
-	echo "user=${MYSQL_USER}" >> /root/.my.cnf
-	echo "password=${MYSQL_PASSWORD}" >> /root/.my.cnf
-	echo "database=${MYSQL_DATABASE}" >> /root/.my.cnf
+	echo 'Database initialized'
 fi
 
 echo
 echo 'MySQL init process done. Ready for start up.'
 echo
 
-# Change  to UID/GID of the docker user
-if [ -n "$DDEV_UID" ] ; then
-	echo "changing mysql user to uid: $DDEV_UID"
-	usermod -u $DDEV_UID mysql
-fi
-if [ -n "$DDEV_GID" ] ; then
-	echo "changing mysql group to uid: $DDEV_GID"
-	groupmod -g $DDEV_GID mysql
-fi
-chown -R mysql:mysql /var/lib/mysql
-chown mysql:mysql /var/log/mysqld.log
+chown -R mysql:mysql /var/lib/mysql /var/log/mysql*
 
 echo "Starting mysqld."
 exec mysqld --max-allowed-packet=${MYSQL_MAX_ALLOWED_PACKET:-16m}
