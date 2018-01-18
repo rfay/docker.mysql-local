@@ -1,41 +1,90 @@
 #!/bin/bash
-
-#set -o errexit
+#set -x
+set -euo pipefail
 
 IMAGE="$1"  # Full image name with tag
 MYSQL_VERSION="$2"
-
+CONTAINER_NAME="testserver"
 HOSTPORT=33000
+MYTMPDIR=~/tmp/testserver-sh_$$
 
-echo "Starting image with MySQL image $IMAGE"
-docker run -e MYSQL_ROOT_PASSWORD=rot --name=testserver -p $HOSTPORT:3306 -d $IMAGE
-RES=$?
-if [ ! $RES = 0 ]; then
-	echo "Server start failed with error code $RES"
+DDEV_UID=0
+DDEV_GID=0
+if [ $(uname -s) == "Linux" ]; then
+	DDEV_UID=$(id -u)
+	DDEV_GID=$(id -g)
+fi
+
+# Always clean up the container on exit.
+function cleanup {
+	echo "Removing ${CONTAINER_NAME}"
+	docker rm -f $CONTAINER_NAME 2>/dev/null || true
+	rm -rf $MYTMPDIR
+}
+
+# Wait for container to be ready.
+function containercheck {
+	for i in {60..0};
+	do
+		# status contains uptime and health in parenthesis, sed to return health
+		status="$(docker ps --format "{{.Status}}" --filter "name=$CONTAINER_NAME" | sed  's/.*(\(.*\)).*/\1/')"
+		if [[ "$status" == "healthy" ]]
+		then
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
+}
+
+
+# Just to make sure we're starting with a clean environment.
+cleanup
+
+# We use MYTMPDIR for a bogus temp dir since mktemp -d creates a dir
+# outside a docker-mountable directory on macOS
+mkdir -p $MYTMPDIR
+rm -rf $MYTMPDIR/*
+
+echo "Starting image with database image $IMAGE"
+if ! docker run -v $MYTMPDIR:/var/lib/mysql -e DDEV_UID=$DDEV_UID -e DDEV_GID=$DDEV_UID --name=$CONTAINER_NAME -p $HOSTPORT:3306 -d $IMAGE; then
+	echo "MySQL server start failed with error code $?"
 	exit 2
 fi
-CONTAINER_NAME=testserver ../test/containercheck.sh
-echo "Connecting to server..."
-for i in $(seq 30 -1 0); do
-	OUTPUT=$(echo "SHOW VARIABLES like 'version';" | mysql -uroot --password=rot -h127.0.0.1 -P$HOSTPORT 2>/dev/null)
-	RES=$?
-	if [ $RES -eq 0 ]; then
-		break
-	fi
-	sleep 1
-done
-if [ $i = 0 ]; then
-	echo >&2 "Unable to connect to server."
-	exit 3
+
+# Now that we've got a container running, we need to make sure to clean up
+# at the end of the test run, even if something fails.
+trap cleanup EXIT
+
+echo "Waiting for database server to become ready..."
+if ! containercheck; then
+	echo "Container did not become ready"
+fi
+echo "Connected to mysql server."
+
+# Try basic connection using root user/password.
+if ! mysql --user=root --password=root --database=mysql --host=127.0.0.1 --port=$HOSTPORT -e "SELECT 1;"; then
+	exit 1;
 fi
 
+# Test to make sure the db user and database are installed properly
+if ! mysql -udb -pdb --database=db --host=127.0.0.1 --port=$HOSTPORT -e "SHOW TABLES;"; then
+	exit 2
+fi
+
+# Make sure we have the right mysql version and can query it (and have root user setup)
+OUTPUT=$(mysql --user=root --password=root --skip-column-names --host=127.0.0.1 --port=$HOSTPORT -e "SHOW VARIABLES like \"version\";")
+RES=$?
+if [ $RES -eq 0 ]; then
+	echo "Successful mysql show variables, output=$OUTPUT"
+fi
 versionregex="version	$MYSQL_VERSION"
 if [[ $OUTPUT =~ $versionregex ]];
 then
 	echo "Version check ok - found '$MYSQL_VERSION'"
 else
-	echo "Expected to see version $MYSQL_VERSION. Actual output: $OUTPUT"
-	exit 4
+	echo "Expected to see $versionregex. Actual output: $OUTPUT"
+	exit 3
 fi
 
 echo "Test passed"
