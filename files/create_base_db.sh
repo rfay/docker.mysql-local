@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -x
+set -eu
+set -o pipefail
+
 # This script can be used to create a bare database tarball for use by
 # ddev startup. It can be run from the host with:
 # docker run -it -v "$PWD/files/var/tmp:/mysqlbase" --rm --entrypoint=/create_base_db.sh drud/mariadb-local:<your_version>
@@ -15,7 +19,7 @@ fi
 
 # For this script we don't want the defaults in .my.cnf
 # However, this script is never run on a normal startup, so we can just throw it away.
-rm -f /root/.my.cnf
+rm -f /home/.my.cnf
 
 chgrp mysql /var/tmp
 chmod ug+rw /var/tmp
